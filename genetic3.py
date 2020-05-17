@@ -12,35 +12,35 @@ class Neural_network:
 
     def make_model(self):
         self.model = Sequential()
-        self.model.add(Dense(4, activation = 'relu', input_shape = (4,), use_bias = False))
-        self.model.add(Dense(8, activation = 'relu', use_bias = False))
+        self.model.add(Dense(8, activation = 'relu', input_shape = (4,), use_bias = False))
+        self.model.add(Dense(16, activation = 'relu', use_bias = False))
         self.model.add(Dense(1, activation = 'sigmoid', use_bias = False))
         self.model.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
         return self.model
     
-    def crossover(self, parent1, parent2, mutation):
-        for layer in range(len(parent1)):
-            for _ in range(random.randrange(len(parent1[layer])*len(parent1[layer][0]))-1):
-                self.gene_row = random.randrange(len(parent1[layer]))
-                self.gene_column = random.randrange(len(parent1[layer][0]))
-                parent1[layer][self.gene_row][self.gene_column] = parent2[layer][self.gene_row][self.gene_column]
+    def crossover(self, parent_1, parent_2, mutation):
+        for layer in range(len(parent_1)):
+            for _ in range(random.randrange(len(parent_1[layer])*len(parent_1[layer][0]))-1):
+                self.gene_row = random.randrange(len(parent_1[layer]))
+                self.gene_column = random.randrange(len(parent_1[layer][0]))
+                parent_1[layer][self.gene_row][self.gene_column] = parent_2[layer][self.gene_row][self.gene_column]
 
         if random.random() <= mutation:
-            for layer in range(len(parent1)):
-                for _ in range(random.randrange(len(parent1[layer])*len(parent1[layer][0]))-1):
-                    self.gene_row = random.randrange(len(parent1[layer]))
-                    self.gene_column = random.randrange(len(parent1[layer][0]))
-                    parent1[layer][self.gene_row][self.gene_column] = random.uniform(-1.0, 1.0)
+            for layer in range(len(parent_1)):
+                for _ in range(3, (random.randrange(len(parent_1[layer])*len(parent_1[layer][0]))-1)):
+                    self.gene_row = random.randrange(len(parent_1[layer]))
+                    self.gene_column = random.randrange(len(parent_1[layer][0]))
+                    parent_1[layer][self.gene_row][self.gene_column] = random.uniform(-1.0, 1.0)
         
-        return parent1
+        return parent_1
 
     def make_crossover_model(self):
         self.model = Sequential()
-        self.model.add(Dense(4, activation = 'relu', input_shape = (4,), use_bias = False))
-        self.model.add(Dense(8, activation = 'relu', use_bias = False))
+        self.model.add(Dense(8, activation = 'relu', input_shape = (4,), use_bias = False))
+        self.model.add(Dense(16, activation = 'relu', use_bias = False))
         self.model.add(Dense(1, activation = 'sigmoid', use_bias = False))
         self.model.compile(optimizer = 'adam', loss = 'binary_crossentropy', metrics = ['accuracy'])
-        self.model.set_weights(self.crossover(parent1 = parent1, parent2 = parent2, mutation = 0.35))
+        self.model.set_weights(self.crossover(parent_1 = parent1, parent_2 = parent2, mutation = 0.3))
         return self.model
 
 
@@ -51,6 +51,7 @@ class Sprite:
         self.y = 300
         self.velocity_y = 0
         self.gravity = 0.4
+        self.fitness_score = 0
 
     def draw(self):
         pygame.draw.rect(window, black, [self.x, self.y, 10, 10])
@@ -76,10 +77,26 @@ class Sprite:
     
     def next_gen_model(self):
         self.brain = Neural_network()
+        # print("#####################parent##############################")
+        # print(parent1)
+        # print(parent2)
+        # print("#####################parent##############################")
         self.model_X = self.brain.make_crossover_model()
+        # print("---------------------child------------------------------")
+        # print(self.model_X.get_weights()) 
+        # print("---------------------child------------------------------")
 
     def same_model(self):
         return self.model_X
+
+    def distance(self, a, b):
+        return ((a**2) + (b**2))**0.5
+
+    def calculating_fitness_score(self, pipe):
+        if self.x >= pipe.x:
+            self.fitness_score += 10
+        else:
+            self.fitness_score += 1/(self.distance(abs(self.y-(pipe.h+int(gap/2))), abs(pipe.x-self.x)))
 
 
 class Pipes:
@@ -132,17 +149,6 @@ def graphics(pipe):
     pygame.display.update()
     clock.tick(fps)
 
-def reset_func(pipe):
-    global run_game, reset, population_size, generation
-
-    pipe.x = window_wd
-    pipe.h = random.randint(20, window_len-gap-20)
-    reset = True
-    population_size = 30
-    new_generation()
-    print("Generation: ", generation)
-    generation += 1
-
 def distance(a, b):
     return ((a**2) + (b**2))**0.5
 
@@ -150,23 +156,27 @@ def birds(pipe):
     global state
 
     for sprite in population:
+        sprite.free_fall()
+        sprite.calculating_fitness_score(pipe)
+
         x1 = distance(abs(sprite.y-pipe.h), abs(pipe.x-sprite.x))  
         x2 = distance(abs(sprite.y-(pipe.h+gap)), abs(pipe.x-sprite.x))
         x3 = sprite.y
         x4 = abs(window_len-sprite.y)
         state = [x1, x2, x3, x4]
         state = [np.array(state)/window_wd]
-        state = np.vstack(state)
+        state = np.vstack(state) 
         brain_model = sprite.same_model()
         jump_probability = (brain_model.predict(state) > 0.5).astype(int)
-
+    
         if jump_probability[0][0] == 1:
             sprite.jump()
         
-        sprite.free_fall()
         if sprite.collision(pipe):
+            fitness_score_array.append([brain_model, sprite.fitness_score])
             population.pop(population.index(sprite))
 
+'''
 def best_birds():
     global parent1, parent2, best_generation_score, current_generation_score, reset, temp_parent1, temp_parent2
 
@@ -185,6 +195,29 @@ def best_birds():
         current_generation_score = 0
 
     current_generation_score += 1
+'''
+
+def best_birds():
+    global fitness_score_array, parent1, parent2, reset
+ 
+    fitness_score_array = np.array(fitness_score_array)
+    fitness_score_array = fitness_score_array[fitness_score_array[:, 1].argsort()] 
+    
+    parent1 = fitness_score_array[len(fitness_score_array)-1][0].get_weights()
+    parent2 = fitness_score_array[len(fitness_score_array)-2][0].get_weights()
+    fitness_score_array = []
+
+def reset_func(pipe):
+    global run_game, reset, population_size, generation
+
+    pipe.x = window_wd
+    pipe.h = random.randint(20, window_len-gap-20)
+    reset = True
+    population_size = 30
+    best_birds()
+    new_generation()
+    print("Generation: ", generation)
+    generation += 1
 
 def game():
     initializing_population()
@@ -194,7 +227,6 @@ def game():
             reset_func(pipe)
         key_strokes()
         birds(pipe)
-        best_birds()
         pipe.procedural_generation()
         graphics(pipe)
 
