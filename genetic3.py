@@ -94,7 +94,7 @@ class Sprite:
 
     def calculating_fitness_score(self, pipe):
         if self.x >= pipe.x:
-            self.fitness_score += 10
+            self.fitness_score += 200
         else:
             self.fitness_score += 1/(self.distance(abs(self.y-(pipe.h+int(gap/2))), abs(pipe.x-self.x)))
 
@@ -123,6 +123,11 @@ def key_strokes():
     for event in pygame.event.get():
         if event.type is pygame.QUIT:
             run_game = False
+            if len(population) != 0:
+                for sprite in population:
+                    fitness_score_array.append([sprite.same_model(), sprite.fitness_score])
+                    population.pop(population.index(sprite))
+            best_birds()
 
 def initializing_population():
     global population
@@ -205,6 +210,7 @@ def best_birds():
     
     parent1 = fitness_score_array[len(fitness_score_array)-1][0].get_weights()
     parent2 = fitness_score_array[len(fitness_score_array)-2][0].get_weights()
+    save_model()
     fitness_score_array = []
 
 def reset_func(pipe):
@@ -218,6 +224,15 @@ def reset_func(pipe):
     new_generation()
     print("Generation: ", generation)
     generation += 1
+
+def save_model():
+    global current_generation_score, best_generation_score
+
+    current_generation_score = fitness_score_array[len(fitness_score_array)-1][1]
+    if current_generation_score >= best_generation_score:
+        best_generation_score = current_generation_score
+        model = fitness_score_array[len(fitness_score_array)-1][0]
+        model.save('GA-AI3.h5')
 
 def game():
     initializing_population()
