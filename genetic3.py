@@ -19,11 +19,15 @@ class Neural_network:
         return self.model
     
     def crossover(self, parent_1, parent_2, mutation):
-        for layer in range(len(parent_1)):
-            for _ in range(random.randrange(len(parent_1[layer])*len(parent_1[layer][0]))-1):
-                self.gene_row = random.randrange(len(parent_1[layer]))
-                self.gene_column = random.randrange(len(parent_1[layer][0]))
-                parent_1[layer][self.gene_row][self.gene_column] = parent_2[layer][self.gene_row][self.gene_column]
+        self.child = [[[None for _ in range(8)] for _ in range(4)], [[None for _ in range(16)] for _ in range(8)], [[None for _ in range(1)] for _ in range(16)]]
+
+        for layer in range(len(self.child)):
+            for gene_row in range(len(self.child[layer])):
+                for gene_col in range(len(self.child[layer][0])):
+                    if random.choice(("parent1", "parent2")) is "parent1":
+                        self.child[layer][gene_row][gene_col] = parent_1[layer][gene_row][gene_col]
+                    else:
+                        self.child[layer][gene_row][gene_col] = parent_2[layer][gene_row][gene_col]
 
         if random.random() <= mutation:
             for layer in range(len(parent_1)):
@@ -77,14 +81,7 @@ class Sprite:
     
     def next_gen_model(self):
         self.brain = Neural_network()
-        # print("#####################parent##############################")
-        # print(parent1)
-        # print(parent2)
-        # print("#####################parent##############################")
         self.model_X = self.brain.make_crossover_model()
-        # print("---------------------child------------------------------")
-        # print(self.model_X.get_weights()) 
-        # print("---------------------child------------------------------")
 
     def same_model(self):
         return self.model_X
@@ -180,27 +177,6 @@ def birds(pipe):
         if sprite.collision(pipe):
             fitness_score_array.append([brain_model, sprite.fitness_score])
             population.pop(population.index(sprite))
-
-'''
-def best_birds():
-    global parent1, parent2, best_generation_score, current_generation_score, reset, temp_parent1, temp_parent2
-
-    if len(population) == 2:
-        temp_parent1 = (population[0].same_model()).get_weights()
-        temp_parent2 = (population[1].same_model()).get_weights()
-
-    if reset:
-        reset = False
-        if best_generation_score <= current_generation_score:
-            best_generation_score = current_generation_score
-            parent1 = temp_parent1
-            parent2 = temp_parent2
-        print("Current score: ", current_generation_score)
-        print("best score: ", best_generation_score)
-        current_generation_score = 0
-
-    current_generation_score += 1
-'''
 
 def best_birds():
     global fitness_score_array, parent1, parent2, reset
